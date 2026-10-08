@@ -495,11 +495,11 @@ $('doneBtn').onclick = finish;
 })();
 
 /* ---------- scoring ---------- */
-function composite(){
+function composite(at){
   const c = document.createElement('canvas'); c.width = N; c.height = N;
   const x = c.getContext('2d'); x.drawImage(IMG[target+':base'], 0, 0, N, N);
   [...placed].sort((a,b)=>(+a.el.style.zIndex)-(+b.el.style.zIndex)).forEach(p => {
-    const im = IMG[p.id]; x.drawImage(im, p.cx - im.naturalWidth/2, p.cy - im.naturalHeight/2);
+    const im = IMG[p.id], q = at ? at.get(p) : p; x.drawImage(im, q.cx - im.naturalWidth/2, q.cy - im.naturalHeight/2);
   });
   return c;
 }
@@ -510,7 +510,8 @@ function idealComposite(){
   SLOTS.forEach(s => { const im = IMG[target+':'+s.k]; x.drawImage(im, parts[s.k].cx - im.naturalWidth/2, parts[s.k].cy - im.naturalHeight/2); });
   return c;
 }
-function similarity(comp){
+// 完成画像と理想画像の違い（のっぺらぼうとの違いを1とした比）
+function lookDiff(comp){
   const parts = ASSETS[target].parts;
   let x0=N,y0=N,x1=0,y1=0;
   SLOTS.forEach(s => { const r = parts[s.k]; x0=Math.min(x0,r.x); y0=Math.min(y0,r.y); x1=Math.max(x1,r.x+r.w); y1=Math.max(y1,r.y+r.h); });
@@ -523,8 +524,7 @@ function similarity(comp){
   const o = small(idealComposite()), b = small(bc), m = small(comp);
   let db = 0, dm = 0;
   for (let i=0;i<o.length;i+=4) for (let k=0;k<3;k++){ db += Math.abs(o[i+k]-b[i+k]); dm += Math.abs(o[i+k]-m[i+k]); }
-  const r = dm/Math.max(1,db);
-  return Math.max(0, 1 - Math.pow(r, 2.2)) * 100;
+  return dm/Math.max(1,db);   // 0=本人の顔と同じ、1=のっぺらぼうと同じだけ違う
 }
 function finish(){
   if (!complete()) return;
@@ -541,7 +541,11 @@ function finish(){
   });
   const pos = res.reduce((t,r)=>t+r.score,0)/res.length;
   const comp = composite();
-  const sim = similarity(comp);
+  // 見た目：「正しいパーツを選べたか」（各パーツを正解の位置に置き直して比べる）を6割、
+  // 「置いた位置での見た目」を4割。少しずれた本人パーツが、のっぺらぼうより悪い扱いにならないように（2026-10-08）
+  const at = new Map(res.map(r => [r.p, parts[r.s.k]]));
+  const look = .6*lookDiff(composite(at)) + .4*lookDiff(comp);
+  const sim = 100*Math.exp(-((look/0.6)**2));
   const total = (pos + sim)/2;
   lastRes = { res, comp };
 
