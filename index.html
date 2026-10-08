@@ -50,16 +50,23 @@ p{margin:0}
 .tag{font-size:1.08rem; font-weight:700; line-height:1.6; margin-bottom:6px}
 .sec{display:flex; justify-content:space-between; align-items:center; margin:22px 0 10px}
 .sec h2{font-size:1rem; margin:0; font-weight:900}
-.levels{display:flex; flex-direction:column; gap:10px}
+.levels{display:flex; flex-direction:column; gap:12px}
+/* ステッカー風のボタン（ロゴと同じ濃紺の影）。押すと影の分だけ沈む */
 .lvbtn{
+  --lc:var(--o);
   display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%;
-  border:none; border-radius:20px; background:var(--paper); color:var(--ink); padding:12px 20px;
+  border:2.5px solid var(--ink); border-left-width:12px; border-left-color:var(--lc); border-radius:18px;
+  background:var(--paper); color:var(--ink); padding:10px 14px 10px 16px;
   font:inherit; text-align:left; cursor:pointer; min-height:62px;
+  box-shadow:4px 4px 0 var(--ink); transition:transform .08s, box-shadow .08s;
 }
+.lvbtn:active{transform:translate(4px,4px); box-shadow:0 0 0 var(--ink)}
+.lvbtn[data-lv=easy]{--lc:var(--g)} .lvbtn[data-lv=hard]{--lc:var(--o)} .lvbtn[data-lv=mono]{--lc:var(--p)}
 .lvbtn b{font-size:1.2rem; font-weight:900; line-height:1.3}
 .lvbtn small{display:block; font-size:.78rem; color:var(--sub); font-weight:500; line-height:1.4}
-.lvbtn .go{font-family:"Unbounded",sans-serif; font-weight:800; font-size:.78rem}
-@media (max-height:620px){ #s-start .muted{display:none} .sec{margin-top:14px} .lvbtn{min-height:52px; padding:8px 18px} }
+.lvbtn .go{flex:none; display:grid; place-items:center; width:38px; height:38px; border-radius:50%; background:var(--lc); color:#fff; font-size:1rem; line-height:1}
+.tag b{color:var(--o)}
+@media (max-height:620px){ #s-start .muted{display:none} .sec{margin-top:14px} .lvbtn{min-height:52px; padding:6px 12px 6px 14px} .lvbtn .go{width:32px; height:32px} }
 
 /* ---------- member select ---------- */
 .head{display:flex; align-items:center; gap:10px; flex:none}
@@ -184,14 +191,14 @@ body.mono .piece.sel{filter:grayscale(1) drop-shadow(0 0 1.5px #fff) drop-shadow
 <section id="s-start" class="screen on">
   <h1 class="logo" aria-label="REAL FACE"><span class="w" aria-hidden="true"><i>REAL</i><b>REAL</b></span><span class="w" aria-hidden="true"><i>FACE</i><b>FACE</b></span><small aria-hidden="true">FIND THE REAL ONE</small></h1>
   <div class="stripe" aria-hidden="true"><i style="background:var(--y)"></i><i style="background:var(--b)"></i><i style="background:var(--g)"></i><i style="background:var(--p)"></i><i style="background:var(--o)"></i></div>
-  <p class="tag">目も、鼻も、口も、ぜんぶシャッフル。<br>本人のパーツを見つけて、顔を組み立て直す。</p>
-  <p class="muted">パーツを置いて採点すると、元の顔にどこまで近づけたかが分かります。</p>
+  <p class="tag">リアルピースの顔が、バラバラに！？<br>本人のパーツで、<b>リアルな顔</b>を取り戻せ！</p>
+  <p class="muted">元気の押し売りアイドル5人、本物の顔に戻せるか！？</p>
 
   <div class="sec"><h2>レベルを選ぶ</h2></div>
   <div class="levels">
-    <button class="lvbtn" data-lv="easy"><span><b>簡単</b><small>本人＋2人、3人分のパーツから</small></span><span class="go">NEXT</span></button>
-    <button class="lvbtn" data-lv="hard"><span><b>難しい</b><small>5人全員のパーツから</small></span><span class="go">NEXT</span></button>
-    <button class="lvbtn" data-lv="mono"><span><b>激ムズ</b><small>5人全員・白黒で</small></span><span class="go">NEXT</span></button>
+    <button class="lvbtn" data-lv="easy"><span><b>簡単</b><small>本人＋2人、3人分のパーツから</small></span><span class="go" aria-hidden="true">▶︎</span></button>
+    <button class="lvbtn" data-lv="hard"><span><b>難しい</b><small>5人全員のパーツから</small></span><span class="go" aria-hidden="true">▶︎</span></button>
+    <button class="lvbtn" data-lv="mono"><span><b>激ムズ</b><small>5人全員・白黒で</small></span><span class="go" aria-hidden="true">▶︎</span></button>
   </div>
 </section>
 
