@@ -304,9 +304,11 @@ p{margin:0}
 </main>
 <script>
 /* 写真のバージョン。画像データは data/<名前>.js に分け、選んだときに読み込む（tools/assets.py で取り出し・書き戻し） */
+// 画像データを作り直したら DATA_REV を変える（スマホに残った古いデータを使わせない）
+const DATA_REV = '20261008-2';
 const VERS = {
-  normal:  {label:'通常ver.', id:'',    src:'data/normal.js'},
-  lovekoi: {label:'衣装ver.', id:'s2-', src:'data/lovekoi.js'},
+  normal:  {label:'通常ver.', id:'',    src:'data/normal.js?r='+DATA_REV},
+  lovekoi: {label:'衣装ver.', id:'s2-', src:'data/lovekoi.js?r='+DATA_REV},
 };
 let ASSETS = null;                        // 今のバージョンの画像データ
 const PAGE = {ver:'normal', id:'', ready:false};   // 今のバージョン（id は最高点の記録の名前、ready は画像の読み込み済み）
