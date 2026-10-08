@@ -87,14 +87,28 @@ p{margin:0}
 .who img{height:100%; max-height:92px; aspect-ratio:1; flex:none; border-radius:14px; object-fit:cover; object-position:50% 40%; background:var(--c)}
 .who > span:first-of-type{flex:1}
 .who .nm{font-size:1.3rem; font-weight:900; line-height:1.2; display:block}
-/* 最高点：名前の行の右に「最高点」、下にレベルごとの「見出し／点」を並べる。選んだレベルを強調 */
-.who .nm{display:flex; align-items:baseline; justify-content:space-between; gap:8px}
-.who .nm small{font-size:.74rem; font-weight:700; color:var(--sub)}
-.who .bs{display:grid; grid-template-columns:repeat(3,1fr); gap:0 6px; margin-top:3px; line-height:1.25}
-.who .bs span{display:block; font-size:.8rem; color:var(--sub); font-weight:500; white-space:nowrap}
-.who .bs span em{display:block; font-style:normal; font-family:"Unbounded",sans-serif; font-weight:700; font-size:.95rem; color:var(--ink)}
-.who .bs span.none em{font-family:inherit; font-size:.92rem; font-weight:700; color:var(--sub)}
-.who .bs span.cur{color:var(--c); font-weight:700}
+.subbar{display:flex; align-items:center; justify-content:space-between; gap:10px; flex:none}
+.bestbtn{font:inherit; font-size:.9rem; font-weight:700; color:var(--ink); background:var(--paper); border:2px solid var(--ink); border-radius:999px; padding:5px 14px; cursor:pointer; box-shadow:2px 2px 0 var(--ink); line-height:1.4}
+.bestbtn:active{transform:translate(2px,2px); box-shadow:none}
+/* 最高記録のダイアログ：レベルを切り替えて5人分の最高点を見る */
+.modal{position:fixed; inset:0; z-index:200000; display:none; align-items:center; justify-content:center; padding:16px; background:rgba(10,12,24,.55)}
+.modal.on{display:flex}
+.modal .card{width:100%; max-width:440px; max-height:100%; overflow:auto; background:var(--paper); color:var(--ink); border-radius:22px; padding:16px; box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.modal .mh{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px}
+.modal .mh h3{margin:0; font-size:1.15rem; font-weight:900}
+.modal .x{width:38px; height:38px; border-radius:50%; border:2px solid var(--line); background:var(--paper); color:var(--ink); font:inherit; font-size:1.1rem; font-weight:900; cursor:pointer; line-height:1}
+.bl-tabs{display:flex; gap:4px; background:var(--bg); border-radius:999px; padding:3px; margin-bottom:10px}
+.bl-tabs button{flex:1; font:inherit; font-weight:700; border:none; background:transparent; color:var(--ink); border-radius:999px; padding:6px 4px; cursor:pointer}
+.bl-tabs button[aria-selected="true"]{background:var(--ink); color:var(--bg)}
+.bl-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px}
+.bl-list li{display:flex; align-items:center; gap:12px; padding:6px 12px 6px 6px; border-radius:14px; background:var(--bg); border-left:6px solid var(--c)}
+.bl-list img{width:44px; height:44px; border-radius:10px; object-fit:cover; object-position:50% 40%; flex:none}
+.bl-list .n{flex:1; font-weight:900; font-size:1.05rem}
+.bl-list .v{font-family:"Unbounded",sans-serif; font-weight:700; font-size:1.15rem}
+.bl-list .v small{font-family:"Zen Kaku Gothic New",sans-serif; font-size:.8rem; margin-left:2px}
+.bl-list .none{font-weight:700; color:var(--sub)}
+.bl-note{font-size:.76rem; color:var(--sub); margin-top:10px}
+
 .who .go{flex:none; display:grid; place-items:center; width:30px; height:30px; border-radius:50%; background:var(--c); color:#fff; font-size:.85rem; line-height:1}
 .loading{color:var(--sub)}
 
@@ -221,10 +235,22 @@ p{margin:0}
   <div class="head">
     <button class="back" id="backBtn" aria-label="レベル選択に戻る">‹</button>
     <h2>どのメンバーにする？</h2>
+  </div>
+  <div class="subbar">
     <span class="lvtag" id="lvTag"></span>
+    <button class="bestbtn" id="bestBtn" type="button">🏆 最高記録</button>
   </div>
   <div class="people" id="people"><p class="loading">画像を準備しています…</p></div>
 </section>
+
+<div class="modal" id="bestModal" role="dialog" aria-modal="true" aria-labelledby="bestTitle">
+  <div class="card">
+    <div class="mh"><h3 id="bestTitle">最高記録</h3><button class="x" id="bestClose" aria-label="閉じる">✕</button></div>
+    <div class="bl-tabs" role="tablist" id="bestTabs"></div>
+    <ul class="bl-list" id="bestList"></ul>
+    <p class="bl-note">この端末・ブラウザでの記録です。</p>
+  </div>
+</div>
 
 <section id="s-play" class="screen">
   <div class="hud">
@@ -386,11 +412,24 @@ async function init(){
 function renderPeople(){
   if (!ready) return;
   $('people').innerHTML = PEOPLE.map(p => {
-    return `<button class="who" style="--c:${p.c}" data-k="${p.k}"><img src="${ASSETS[p.k].orig}" alt=""><span><span class="nm">${p.n}<small>最高点</small></span><span class="bs">${Object.keys(LV).map(lv => { const v = getBest(p.k, lv);
-      return `<span class="${v ? '' : 'none'}${lv === level() ? ' cur' : ''}">${LV[lv]}<em>${v ? v.toFixed(1) : 'なし'}</em></span>`; }).join('')}</span></span><span class="go" aria-hidden="true">▶︎</span></button>`;
+    return `<button class="who" style="--c:${p.c}" data-k="${p.k}"><img src="${ASSETS[p.k].orig}" alt=""><span><span class="nm">${p.n}</span></span><span class="go" aria-hidden="true">▶︎</span></button>`;
   }).join('');
   $('people').querySelectorAll('.who').forEach(b => b.onclick = () => { target = b.dataset.k; startPlay(); });
 }
+/* ---------- 最高記録（メンバー選択の上のボタンから開く。最初は選んだレベル） ---------- */
+let bestLv = 'easy';
+function renderBest(){
+  $('bestTabs').innerHTML = Object.keys(LV).map(lv => `<button role="tab" aria-selected="${lv===bestLv}" data-lv="${lv}">${LV[lv]}</button>`).join('');
+  $('bestTabs').querySelectorAll('button').forEach(b => b.onclick = () => { bestLv = b.dataset.lv; renderBest(); });
+  $('bestList').innerHTML = PEOPLE.map(p => { const v = getBest(p.k, bestLv);
+    return `<li style="--c:${p.c}"><img src="${ASSETS[p.k].orig}" alt=""><span class="n">${p.n}</span>${v ? `<span class="v">${v.toFixed(1)}<small>点</small></span>` : '<span class="none">なし</span>'}</li>`; }).join('');
+}
+function openBest(){ bestLv = level(); renderBest(); $('bestModal').classList.add('on'); $('bestClose').focus(); }
+function closeBest(){ $('bestModal').classList.remove('on'); $('bestBtn').focus(); }
+$('bestBtn').onclick = openBest;
+$('bestClose').onclick = closeBest;
+$('bestModal').addEventListener('click', e => { if (e.target === $('bestModal')) closeBest(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('bestModal').classList.contains('on')) closeBest(); });
 
 /* ---------- play ---------- */
 const stage = $('stage'), board = $('board'), bctx = board.getContext('2d');
