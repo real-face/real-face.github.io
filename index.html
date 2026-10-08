@@ -116,6 +116,9 @@ p{margin:0}
 #stage{position:relative; width:min(100cqw - 8px,100cqh - 8px); aspect-ratio:1; border-radius:24px; overflow:hidden; background:var(--line); touch-action:none; box-shadow:0 0 0 4px var(--c)}
 #board{position:absolute; inset:0; width:100%; height:100%}
 .piece{position:absolute; touch-action:none; cursor:grab; user-select:none; -webkit-user-drag:none}
+/* 長押しで出る「画像をコピー/保存」のメニューと文字選択を、パーツ合わせの画面では出さない */
+#s-play{-webkit-touch-callout:none; -webkit-user-select:none; user-select:none}
+#s-play img{-webkit-user-drag:none}
 .piece.sel{filter:drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 3px var(--c))}
 .piece.drag{cursor:grabbing}
 #stage.peek .piece.sel{filter:none}
@@ -346,6 +349,7 @@ const shuffle = a => { for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.r
 const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
 function show(id){ document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id===id)); window.scrollTo(0,0); }
 function toMembers(){ clearPieces(); renderPeople(); document.documentElement.style.removeProperty('--c'); document.body.classList.remove('mono'); show('s-member'); }
+$('s-play').addEventListener('contextmenu', e => e.preventDefault());
 document.querySelectorAll('.lvbtn').forEach(b => b.onclick = () => { curLv = b.dataset.lv; $('lvTag').textContent = LV[curLv]; toMembers(); });
 $('backBtn').onclick = () => show('s-start');
 
