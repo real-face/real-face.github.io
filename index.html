@@ -63,7 +63,7 @@ p{margin:0}
 .lvbtn:active{transform:translate(4px,4px); box-shadow:0 0 0 var(--ink)}
 .lvbtn[data-lv=easy]{--lc:var(--g)} .lvbtn[data-lv=hard]{--lc:var(--o)} .lvbtn[data-lv=rot]{--lc:var(--p)}
 .lvbtn b{font-size:1.2rem; font-weight:900; line-height:1.3}
-.lvbtn small{display:block; font-size:.78rem; color:var(--sub); font-weight:500; line-height:1.4}
+.lvbtn small{display:block; font-size:.9rem; color:var(--sub); font-weight:500; line-height:1.4}
 .lvbtn .go{flex:none; display:grid; place-items:center; width:38px; height:38px; border-radius:50%; background:var(--lc); color:#fff; font-size:1rem; line-height:1}
 .tag b{color:var(--o)}
 @media (max-height:620px){ #s-start .muted{display:none} .sec{margin-top:14px} .lvbtn{min-height:52px; padding:6px 12px 6px 14px} .lvbtn .go{width:32px; height:32px} }
@@ -79,7 +79,7 @@ p{margin:0}
 .people{display:flex; flex-direction:column; gap:8px; flex:1; min-height:0}
 .who{
   flex:1 1 0; min-height:0; max-height:104px;
-  display:flex; align-items:center; gap:14px;
+  display:flex; align-items:center; gap:12px;
   border:none; padding:6px 18px 6px 6px; background:var(--paper); border-radius:20px; cursor:pointer;
   font:inherit; color:var(--ink); text-align:left; position:relative; overflow:hidden;
 }
@@ -87,8 +87,15 @@ p{margin:0}
 .who img{height:100%; max-height:92px; aspect-ratio:1; flex:none; border-radius:14px; object-fit:cover; object-position:50% 40%; background:var(--c)}
 .who > span:first-of-type{flex:1}
 .who .nm{font-size:1.3rem; font-weight:900; line-height:1.2; display:block}
-.who .bs{font-size:.76rem; color:var(--sub); display:block; font-weight:500; line-height:1.4}
-.who .go{font-family:"Unbounded",sans-serif; font-weight:800; font-size:.78rem; color:var(--c); letter-spacing:.02em}
+/* 最高点：名前の行の右に「最高点」、下にレベルごとの「見出し／点」を並べる。選んだレベルを強調 */
+.who .nm{display:flex; align-items:baseline; justify-content:space-between; gap:8px}
+.who .nm small{font-size:.74rem; font-weight:700; color:var(--sub)}
+.who .bs{display:grid; grid-template-columns:repeat(3,1fr); gap:0 6px; margin-top:3px; line-height:1.25}
+.who .bs span{display:block; font-size:.8rem; color:var(--sub); font-weight:500; white-space:nowrap}
+.who .bs span em{display:block; font-style:normal; font-family:"Unbounded",sans-serif; font-weight:700; font-size:.95rem; color:var(--ink)}
+.who .bs span.none em{font-family:inherit; font-size:.92rem; font-weight:700; color:var(--sub)}
+.who .bs span.cur{color:var(--c); font-weight:700}
+.who .go{flex:none; display:grid; place-items:center; width:30px; height:30px; border-radius:50%; background:var(--c); color:#fff; font-size:.85rem; line-height:1}
 .loading{color:var(--sub)}
 
 .btn{
@@ -213,7 +220,7 @@ p{margin:0}
 <section id="s-member" class="screen">
   <div class="head">
     <button class="back" id="backBtn" aria-label="レベル選択に戻る">‹</button>
-    <h2>誰の顔にする？</h2>
+    <h2>どのメンバーにする？</h2>
     <span class="lvtag" id="lvTag"></span>
   </div>
   <div class="people" id="people"><p class="loading">画像を準備しています…</p></div>
@@ -292,7 +299,7 @@ let target = null, pool = [], placed = [], tab = 'eye', sel = null, playing = fa
 let timerId = null, t0 = 0, elapsed = 0, zTop = 5, seq = 0, lastRes = null;
 
 const loadImg = src => new Promise((ok, ng) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ng; i.src = src; });
-const getBest = k => { try { return parseFloat(localStorage.getItem('fw2-best-'+level()+'-'+k)) || 0 } catch(e){ return 0 } };
+const getBest = (k, lv = level()) => { try { return parseFloat(localStorage.getItem('fw2-best-'+lv+'-'+k)) || 0 } catch(e){ return 0 } };
 const setBest = (k,v) => { try { localStorage.setItem('fw2-best-'+level()+'-'+k, String(v)) } catch(e){} };
 let curLv = 'easy';
 const level = () => curLv;
@@ -379,8 +386,8 @@ async function init(){
 function renderPeople(){
   if (!ready) return;
   $('people').innerHTML = PEOPLE.map(p => {
-    const b = getBest(p.k);
-    return `<button class="who" style="--c:${p.c}" data-k="${p.k}"><img src="${ASSETS[p.k].orig}" alt=""><span><span class="nm">${p.n}</span><span class="bs">${b ? LV[level()]+'の最高 '+b.toFixed(1)+'点' : 'まだ記録なし'}</span></span><span class="go">PLAY</span></button>`;
+    return `<button class="who" style="--c:${p.c}" data-k="${p.k}"><img src="${ASSETS[p.k].orig}" alt=""><span><span class="nm">${p.n}<small>最高点</small></span><span class="bs">${Object.keys(LV).map(lv => { const v = getBest(p.k, lv);
+      return `<span class="${v ? '' : 'none'}${lv === level() ? ' cur' : ''}">${LV[lv]}<em>${v ? v.toFixed(1) : 'なし'}</em></span>`; }).join('')}</span></span><span class="go" aria-hidden="true">▶︎</span></button>`;
   }).join('');
   $('people').querySelectorAll('.who').forEach(b => b.onclick = () => { target = b.dataset.k; startPlay(); });
 }
