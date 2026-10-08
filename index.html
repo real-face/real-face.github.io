@@ -43,8 +43,8 @@ p{margin:0}
 .logo .w{display:block; position:relative; width:max-content}
 .logo .w i{position:absolute; left:.045em; top:.05em; font-style:normal; color:var(--ink)}
 .logo .w b{position:relative; font-weight:inherit; background:linear-gradient(to bottom,#FFD524 0%,#FFAE1A 50%,#F2621C 100%); -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent}
-.logo .w+.w{margin-left:.42em}
-.logo small{display:block; font-family:"Unbounded",sans-serif; font-weight:500; font-size:.72rem; letter-spacing:.32em; color:var(--sub); margin:14px 0 0 .2em}
+.logo .w+.w{margin-left:auto; margin-right:.05em}   /* REAL は左、FACE は右に寄せて対角にバランスを取る */
+.logo small{display:block; font-family:"Unbounded",sans-serif; font-weight:500; font-size:.72rem; letter-spacing:.32em; color:var(--sub); margin:14px .1em 0 0; text-align:right}
 .stripe{display:flex; flex:none; height:10px; margin:16px 0; border-radius:6px; overflow:hidden}
 .stripe i{flex:1}
 .tag{font-size:1.08rem; font-weight:700; line-height:1.6; margin-bottom:6px}
@@ -66,7 +66,7 @@ p{margin:0}
 .lvbtn small{display:block; font-size:.9rem; color:var(--sub); font-weight:500; line-height:1.4}
 .lvbtn .go{flex:none; display:grid; place-items:center; width:38px; height:38px; border-radius:50%; background:var(--lc); color:#fff; font-size:1rem; line-height:1}
 .tag b{color:var(--o)}
-@media (max-height:620px){ #s-start .muted{display:none} .sec{margin-top:14px} .lvbtn{min-height:52px; padding:6px 12px 6px 14px} .lvbtn .go{width:32px; height:32px} }
+@media (max-height:620px){ .sec{margin-top:14px} .lvbtn{min-height:52px; padding:6px 12px 6px 14px} .lvbtn .go{width:32px; height:32px} }
 
 /* ---------- member select ---------- */
 .head{display:flex; align-items:center; gap:10px; flex:none}
@@ -219,9 +219,8 @@ p{margin:0}
 
 <section id="s-start" class="screen on">
   <h1 class="logo" aria-label="REAL FACE"><span class="w" aria-hidden="true"><i>REAL</i><b>REAL</b></span><span class="w" aria-hidden="true"><i>FACE</i><b>FACE</b></span><small aria-hidden="true">FIND THE REAL ONE</small></h1>
-  <div class="stripe" aria-hidden="true"><i style="background:var(--y)"></i><i style="background:var(--b)"></i><i style="background:var(--g)"></i><i style="background:var(--p)"></i><i style="background:var(--o)"></i></div>
+  <div class="stripe" aria-hidden="true"><i style="background:var(--o)"></i><i style="background:var(--y)"></i><i style="background:var(--b)"></i><i style="background:var(--g)"></i><i style="background:var(--p)"></i></div>
   <p class="tag">リアルピースの顔が、バラバラに！？<br>本人のパーツで、<b>リアルな顔</b>を取り戻せ！</p>
-  <p class="muted">元気の押し売りアイドル5人、本物の顔に戻せるか！？</p>
 
   <div class="sec"><h2>レベルを選ぶ</h2></div>
   <div class="levels">
