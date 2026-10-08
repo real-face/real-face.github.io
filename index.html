@@ -61,7 +61,7 @@ p{margin:0}
   box-shadow:4px 4px 0 var(--ink); transition:transform .08s, box-shadow .08s;
 }
 .lvbtn:active{transform:translate(4px,4px); box-shadow:0 0 0 var(--ink)}
-.lvbtn[data-lv=easy]{--lc:var(--g)} .lvbtn[data-lv=hard]{--lc:var(--o)} .lvbtn[data-lv=mono]{--lc:var(--p)}
+.lvbtn[data-lv=easy]{--lc:var(--g)} .lvbtn[data-lv=hard]{--lc:var(--o)} .lvbtn[data-lv=rot]{--lc:var(--p)}
 .lvbtn b{font-size:1.2rem; font-weight:900; line-height:1.3}
 .lvbtn small{display:block; font-size:.78rem; color:var(--sub); font-weight:500; line-height:1.4}
 .lvbtn .go{flex:none; display:grid; place-items:center; width:38px; height:38px; border-radius:50%; background:var(--lc); color:#fff; font-size:1rem; line-height:1}
@@ -122,9 +122,14 @@ p{margin:0}
 .piece.sel{filter:drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 3px var(--c))}
 .piece.drag{cursor:grabbing}
 #stage.peek .piece.sel{filter:none}
-body.mono #stage.peek .piece.sel{filter:grayscale(1) contrast(1.05)}
-body.mono #board,body.mono .piece,body.mono .pal img,body.mono #resultImg.gray{filter:grayscale(1) contrast(1.05)}
-body.mono .piece.sel{filter:grayscale(1) drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 3px var(--c))}
+.piece{transform-origin:50% 50%}
+/* 激ムズ：選択中のパーツの回転つまみ（中心とつまみを線で結ぶ） */
+#rotH{position:absolute; left:0; top:0; width:0; height:0; z-index:100000; display:none; pointer-events:none}
+#rotH.on{display:block}
+#rotH i{position:absolute; left:0; top:0; height:2px; background:#fff; transform-origin:0 50%; box-shadow:0 0 2px rgba(0,0,0,.5)}
+#rotH b{position:absolute; width:30px; height:30px; margin:-15px 0 0 -15px; border-radius:50%; background:var(--c); border:3px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.4); pointer-events:auto; touch-action:none; cursor:grab; display:grid; place-items:center; color:#fff; font-size:15px; line-height:1}
+#stage.peek #rotH{display:none}
+.pal button img.lv{transform:rotate(var(--r)) scale(.86)}
 .tray{--th:clamp(40px,7dvh,60px); flex:none; background:var(--tray); border-radius:22px; padding:8px; color:#F1F2F6}
 .tabs{display:flex; gap:4px; background:rgba(255,255,255,.08); border-radius:999px; padding:3px; margin-bottom:8px}
 .tabs button{flex:1; font:inherit; font-weight:700; padding:5px 4px; border-radius:999px; cursor:pointer; border:none; background:transparent; color:#F1F2F6; line-height:1.5}
@@ -201,7 +206,7 @@ body.mono .piece.sel{filter:grayscale(1) drop-shadow(0 0 1.5px #fff) drop-shadow
   <div class="levels">
     <button class="lvbtn" data-lv="easy"><span><b>簡単</b><small>本人＋2人、3人分のパーツから</small></span><span class="go" aria-hidden="true">▶︎</span></button>
     <button class="lvbtn" data-lv="hard"><span><b>難しい</b><small>5人全員のパーツから</small></span><span class="go" aria-hidden="true">▶︎</span></button>
-    <button class="lvbtn" data-lv="mono"><span><b>激ムズ</b><small>5人全員・白黒で</small></span><span class="go" aria-hidden="true">▶︎</span></button>
+    <button class="lvbtn" data-lv="rot"><span><b>激ムズ</b><small>5人全員・パーツの角度も合わせる</small></span><span class="go" aria-hidden="true">▶︎</span></button>
   </div>
 </section>
 
@@ -222,7 +227,7 @@ body.mono .piece.sel{filter:grayscale(1) drop-shadow(0 0 1.5px #fff) drop-shadow
       <button class="btn sm primary" id="doneBtn" disabled>採点する</button>
     </div>
   </div>
-  <div class="stagebox"><div id="stage"><canvas id="board" width="512" height="512"></canvas></div></div>
+  <div class="stagebox"><div id="stage"><canvas id="board" width="512" height="512"></canvas><div id="rotH" aria-hidden="true"><i></i><b>↻</b></div></div></div>
   <div class="tray">
     <div class="tabs" role="tablist" id="tabs"></div>
     <div class="pal" id="pal"></div>
@@ -291,7 +296,13 @@ const getBest = k => { try { return parseFloat(localStorage.getItem('fw2-best-'+
 const setBest = (k,v) => { try { localStorage.setItem('fw2-best-'+level()+'-'+k, String(v)) } catch(e){} };
 let curLv = 'easy';
 const level = () => curLv;
-const LV = {easy:'簡単', hard:'難しい', mono:'激ムズ'};
+const LV = {easy:'簡単', hard:'難しい', rot:'激ムズ'};
+/* 写真の顔の傾き（向かって左の目→右の目の線の角度、度）。tools/eye_core.json の目から計算。
+   激ムズではパーツをこの分だけ逆に回して水平にそろえて出し、プレイヤーが回して合わせる */
+const TILT = {yellow:-4.9, blue:-11.3, green:9.5, purple:26.7, orange:24.3};
+const rotLv = () => level() === 'rot';
+// そのパーツを選んだ顔に置いたときの正しい回転（本人のパーツなら0）
+const idealRot = p => rotLv() ? TILT[target] - TILT[p.owner] : 0;
 /* 採点コメント：点数の帯ごとに候補からランダム。{n} は選んだメンバーの名前 */
 const RANKS = [
   {min:96, t:['本人そのもの','完全に本物','鏡を見てるみたい','本人より本人かも']},
@@ -348,7 +359,7 @@ function memberQuote(k, total){
 const shuffle = a => { for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
 const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
 function show(id){ document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id===id)); window.scrollTo(0,0); }
-function toMembers(){ clearPieces(); renderPeople(); document.documentElement.style.removeProperty('--c'); document.body.classList.remove('mono'); show('s-member'); }
+function toMembers(){ clearPieces(); renderPeople(); document.documentElement.style.removeProperty('--c'); show('s-member'); }
 $('s-play').addEventListener('contextmenu', e => e.preventDefault());
 document.querySelectorAll('.lvbtn').forEach(b => b.onclick = () => { curLv = b.dataset.lv; $('lvTag').textContent = LV[curLv]; toMembers(); });
 $('backBtn').onclick = () => show('s-start');
@@ -383,7 +394,6 @@ function startPlay(){
   pool = {};
   TYPES.forEach(t => { pool[t.t] = shuffle(who.flatMap(k => SLOTS.filter(s=>s.t===t.t).map(s => k+':'+s.k))); });
   bctx.drawImage(IMG[target+':base'], 0, 0, N, N);
-  document.body.classList.toggle('mono', level()==='mono');
   show('s-play'); layout(); renderTabs(); renderPal();
   $('time').textContent = '0:00';
   beginTimer();
@@ -398,7 +408,40 @@ function placeEl(p){
   p.el.style.width = (im.naturalWidth*scale)+'px';
   p.el.style.left = ((p.cx - im.naturalWidth/2)*scale)+'px';
   p.el.style.top  = ((p.cy - im.naturalHeight/2)*scale)+'px';
+  p.el.style.transform = p.rot ? `rotate(${p.rot}deg)` : '';
+  if (p === sel) placeHandle();
 }
+/* ---------- 回転つまみ（激ムズ） ---------- */
+const rotH = $('rotH'), knob = rotH.querySelector('b'), arm = rotH.querySelector('i');
+let flipH = false;
+function handleVec(p){
+  // パーツの上（回転に合わせて回る）につまみを出す。ステージからはみ出すなら下側に出す
+  const im = IMG[p.id], L = (Math.max(im.naturalWidth, im.naturalHeight)/2)*scale + 26, a = (p.rot||0)*Math.PI/180;
+  let v = { x: Math.sin(a)*L, y: -Math.cos(a)*L };
+  const cx = p.cx*scale, cy = p.cy*scale, W = stage.clientWidth, in_ = (x,y) => x>16 && y>16 && x<W-16 && y<W-16;
+  flipH = !in_(cx+v.x, cy+v.y) && in_(cx-v.x, cy-v.y);
+  if (flipH) v = { x:-v.x, y:-v.y };
+  return v;
+}
+function placeHandle(){
+  const p = sel, on = !!(p && rotLv() && playing);
+  rotH.classList.toggle('on', on);
+  if (!on) return;
+  const v = handleVec(p);
+  rotH.style.left = (p.cx*scale)+'px'; rotH.style.top = (p.cy*scale)+'px';
+  knob.style.left = v.x+'px'; knob.style.top = v.y+'px';
+  arm.style.width = Math.hypot(v.x, v.y)+'px'; arm.style.transform = `rotate(${Math.atan2(v.y, v.x)}rad)`;
+}
+knob.addEventListener('pointerdown', e => {
+  if (!sel || !playing) return;
+  e.preventDefault(); e.stopPropagation(); knob.setPointerCapture(e.pointerId);
+  const p = sel, r = stage.getBoundingClientRect();
+  const ang = ev => Math.atan2((ev.clientX-r.left)/scale - p.cx, -((ev.clientY-r.top)/scale - p.cy))*180/Math.PI + (flipH ? 180 : 0);
+  const a0 = ang(e), r0 = p.rot || 0;
+  const mv = ev => { let d = ang(ev) - a0; d = ((d+540)%360)-180; p.rot = Math.max(-90, Math.min(90, r0 + d)); placeEl(p); };
+  const up = () => { knob.removeEventListener('pointermove', mv); knob.removeEventListener('pointerup', up); knob.removeEventListener('pointercancel', up); };
+  knob.addEventListener('pointermove', mv); knob.addEventListener('pointerup', up); knob.addEventListener('pointercancel', up);
+});
 function renderTabs(){
   $('tabs').innerHTML = TYPES.map(t => {
     const c = placed.filter(p=>p.t===t.t).length;
@@ -410,7 +453,8 @@ function renderPal(){
   const tn = TM[tab].n;
   $('pal').innerHTML = pool[tab].map((id,i) => {
     const used = placed.some(q=>q.id===id), [k,part] = id.split(':');
-    return `<button class="${used?'used':''}" data-id="${id}" aria-label="${tn}${i+1}${used?'（使用中）':''}"><img src="${ASSETS[k].parts[part].img}" alt=""></button>`;
+    const lv = rotLv() ? ` class="lv" style="--r:${-TILT[k]}deg"` : '';
+    return `<button class="${used?'used':''}" data-id="${id}" aria-label="${tn}${i+1}${used?'（使用中）':''}"><img src="${ASSETS[k].parts[part].img}"${lv} alt=""></button>`;
   }).join('');
   $('pal').querySelectorAll('button').forEach(b => b.onclick = () => addPiece(b.dataset.id));
 }
@@ -425,14 +469,16 @@ function addPiece(id){
   let at = null;
   if (same.length >= TM[t].max){
     const old = sel && sel.t === t ? sel : same.sort((a,b)=>a.seq-b.seq)[0];
-    at = { cx: old.cx, cy: old.cy };   // 入れ替えたパーツは同じ場所に置く
+    // 入れ替えたパーツは同じ場所・同じ見た目の角度に置く
+    at = { cx: old.cx, cy: old.cy, rot: (old.rot||0) + TILT[old.owner] - TILT[owner] };
     removePiece(old);
   }
   const el = document.createElement('img');
   el.src = IMG[id].src; el.className = 'piece'; el.alt = TM[t].n; el.draggable = false;
   el.style.zIndex = ++zTop;
   const p = { id, owner, part, t, seq:++seq, el,
-    cx: at ? at.cx : 150 + Math.random()*212, cy: at ? at.cy : 150 + Math.random()*212 };
+    cx: at ? at.cx : 150 + Math.random()*212, cy: at ? at.cy : 150 + Math.random()*212,
+    rot: !rotLv() ? 0 : at ? at.rot : -TILT[owner] };   // 激ムズは水平にそろえた向きで出す
   stage.appendChild(el);
   placed.push(p); placeEl(p); bindDrag(p); select(p);
   renderTabs(); renderPal(); status();
@@ -444,6 +490,7 @@ function removePiece(p){
 function clearPieces(){ placed.forEach(p=>p.el.remove()); placed = []; sel = null; }
 function select(p){
   sel = p; placed.forEach(q => q.el.classList.toggle('sel', q===p));
+  placeHandle();
   $('removeBtn').disabled = !p || !playing;
 }
 $('removeBtn').onclick = () => { if (sel){ removePiece(sel); renderTabs(); renderPal(); status(); } };
@@ -473,14 +520,14 @@ function status(){
   const need = TYPES.map(t => t.max - placed.filter(p=>p.t===t.t).length).reduce((a,b)=>a+b,0);
   document.documentElement.style.setProperty('--c', P.c);
   $('playName').textContent = P.n;
-  $('playMsg').textContent = need === 4 ? 'タップで乗せてドラッグ' : need ? `あと${need}パーツ・${LV[level()]}` : 'そろいました！';
+  $('playMsg').textContent = need === 4 ? (rotLv() ? 'タップで乗せて、○で回転' : 'タップで乗せてドラッグ') : need ? `あと${need}パーツ・${LV[level()]}` : 'そろいました！';
   $('doneBtn').disabled = !complete() || !playing;
 }
 function beginTimer(){
   playing = true; t0 = performance.now(); status();
   timerId = setInterval(() => { elapsed = (performance.now()-t0)/1000; $('time').textContent = fmt(elapsed); }, 250);
 }
-function stopTimer(){ if (timerId) clearInterval(timerId); timerId = null; playing = false; }
+function stopTimer(){ if (timerId) clearInterval(timerId); timerId = null; playing = false; placeHandle(); }
 $('quitBtn').onclick = () => { stopTimer(); toMembers(); };
 $('doneBtn').onclick = finish;
 (() => {
@@ -499,7 +546,9 @@ function composite(at){
   const c = document.createElement('canvas'); c.width = N; c.height = N;
   const x = c.getContext('2d'); x.drawImage(IMG[target+':base'], 0, 0, N, N);
   [...placed].sort((a,b)=>(+a.el.style.zIndex)-(+b.el.style.zIndex)).forEach(p => {
-    const im = IMG[p.id], q = at ? at.get(p) : p; x.drawImage(im, q.cx - im.naturalWidth/2, q.cy - im.naturalHeight/2);
+    const im = IMG[p.id], q = at ? at.get(p) : p;
+    x.save(); x.translate(q.cx, q.cy); x.rotate((q.rot||0)*Math.PI/180);
+    x.drawImage(im, -im.naturalWidth/2, -im.naturalHeight/2); x.restore();
   });
   return c;
 }
@@ -537,13 +586,15 @@ function finish(){
   const match = { eyeR:a, eyeL:b, nose:placed.find(p=>p.t==='nose'), mouth:placed.find(p=>p.t==='mouth') };
   const res = SLOTS.map(s => {
     const p = match[s.k], err = d(p, s.k)/S;
-    return { s, p, score: 100*Math.exp(-((err/0.35)**2)), own: p.owner===target };
+    // 激ムズは角度のずれも位置の点に入れる（25度ずれで約37%）
+    const rerr = rotLv() ? Math.abs((p.rot||0) - idealRot(p)) : 0;
+    return { s, p, score: 100*Math.exp(-((err/0.35)**2) - ((rerr/25)**2)), own: p.owner===target };
   });
   const pos = res.reduce((t,r)=>t+r.score,0)/res.length;
   const comp = composite();
   // 見た目：「正しいパーツを選べたか」（各パーツを正解の位置に置き直して比べる）を6割、
   // 「置いた位置での見た目」を4割。少しずれた本人パーツが、のっぺらぼうより悪い扱いにならないように（2026-10-08）
-  const at = new Map(res.map(r => [r.p, parts[r.s.k]]));
+  const at = new Map(res.map(r => [r.p, { cx: parts[r.s.k].cx, cy: parts[r.s.k].cy, rot: idealRot(r.p) }]));
   const look = .6*lookDiff(composite(at)) + .4*lookDiff(comp);
   const sim = 100*Math.exp(-((look/0.6)**2));
   const total = (pos + sim)/2;
@@ -589,7 +640,6 @@ function renderResult(view){
       });
     }
   }
-  $('resultImg').classList.toggle('gray', view !== 'orig');
   $('resCap').hidden = view !== 'answer';
   $('resultImg').src = c.toDataURL('image/jpeg', .9);
 }
